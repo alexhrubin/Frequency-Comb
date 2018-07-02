@@ -1,12 +1,10 @@
 function integratedA = integrate_A(WG, z_prime)
-Z = linspace(0, z_prime, 5);
-step_size = z_prime / 5;
-   
-A_values = arrayfun(@(z) A(WG, z), Z, 'UniformOutput', false);
+step_size = 0.05;
 
-total_A = zeros(size(A_values{1,1}));
-for i = 1:5
-    total_A = total_A + A_values{1, i};
+total_A = zeros(2);
+
+for i = 1 : z_prime * 20
+    total_A = total_A + A(WG, i);
     
 integratedA = total_A * step_size;
 end

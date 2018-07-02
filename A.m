@@ -1,6 +1,6 @@
 function a = A(WG, z)
     a = [];
-    betas = WG.getbeta(z);
+    betas = WG.betas(:, z*20);
     profiles = WG.mode_profiles(z);
     
     s = size(betas,2);

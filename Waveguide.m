@@ -7,22 +7,28 @@ classdef Waveguide
         d_zero %this is the half-width at z=0
         k
         a %controls the rate at which the waveguide expands
+        betas
+        length
     end
     methods
-        function obj = Waveguide(n, d_zero, k, a) %half-width at z
+        function obj = Waveguide(n, d_zero, length, k, a) %half-width at z
             obj.n = n;
             obj.d_zero = d_zero;
             obj.k = k;
             obj.a = a;
+            obj.length = length;
+            obj.betas = obj.all_betas();
         end
+        
         function d = width(obj, z)
             d = obj.d_zero * exp(obj.a*z);
         end
         function p = dedz(obj, z)
             p = obj.a * width(obj, z);
         end
-        function beta = getbeta(obj, z)
-            d = obj.width(z);
+        
+        function beta = getbeta(obj, d)
+            %d = obj.width(z);
             V = d * obj.k * sqrt(obj.n^2-1);
             n_sym= floor(V/pi);
             x_sym=[];
@@ -44,6 +50,16 @@ classdef Waveguide
             beta = sort([x_sym, x_asym], 'descend');
         end
 
+        
+        function all_b = all_betas(obj)
+            all_b = [];
+            for i = 1 : obj.length*20 %20 points per um of length
+                d = obj.width(i/20);
+                all_b = cat(2, all_b, transp(obj.getbeta(d)));
+            end
+        end
+  
+        
         function profiles = mode_profiles(obj, z)
             num_of_points = 5000;
             d = obj.width(z); %half-width of waveguide at z
