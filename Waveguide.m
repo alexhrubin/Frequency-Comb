@@ -8,7 +8,8 @@ classdef Waveguide
         k
         a %controls the rate at which the waveguide expands
         betas
-        length
+        wg_length
+        steps = 500 %points per um in z direction
     end
     methods
         function obj = Waveguide(n, d_zero, length, k, a) %half-width at z
@@ -16,7 +17,7 @@ classdef Waveguide
             obj.d_zero = d_zero;
             obj.k = k;
             obj.a = a;
-            obj.length = length;
+            obj.wg_length = length;
             obj.betas = obj.all_betas();
         end
         
@@ -27,8 +28,8 @@ classdef Waveguide
             p = obj.a * width(obj, z);
         end
         
-        function beta = getbeta(obj, d)
-            %d = obj.width(z);
+        function beta = getbeta(obj, z)
+            d = obj.width(z);
             V = d * obj.k * sqrt(obj.n^2-1);
             n_sym= floor(V/pi);
             x_sym=[];
@@ -53,24 +54,23 @@ classdef Waveguide
         
         function all_b = all_betas(obj)
             all_b = [];
-            for i = 1 : obj.length*20 %20 points per um of length
-                d = obj.width(i/20);
-                all_b = cat(2, all_b, transp(obj.getbeta(d)));
+            for i = 1 : obj.wg_length*obj.steps
+                all_b = cat(2, all_b, transp(obj.getbeta((i-1)/obj.steps)));
             end
         end
   
         
         function profiles = mode_profiles(obj, z)
-            num_of_points = 5000;
+            num_of_points = 1000;
             d = obj.width(z); %half-width of waveguide at z
             X = linspace(-5*d, 5*d, num_of_points);
 
-            betas = getbeta(obj, z);
+            local_betas = getbeta(obj, z);
             profiles = [];
 
-            for i = 1:length(betas)
-                u = sqrt((obj.n*obj.k)^2-betas(i)^2);
-                w = sqrt(betas(i)^2-obj.k^2);
+            for i = 1:length(local_betas)
+                u = sqrt((obj.n*obj.k)^2-local_betas(i)^2);
+                w = sqrt(local_betas(i)^2-obj.k^2);
                 mode = zeros(1, num_of_points);
 
                 if mod(i,2) == 1 %symmetrical modes
@@ -102,7 +102,7 @@ classdef Waveguide
                 end
                 profiles = cat(1, profiles, mode);
             end
-            profiles = cat(1, profiles, X);
+            profiles = real(cat(1, profiles, X));
         end
 
         
@@ -110,8 +110,8 @@ classdef Waveguide
         function plot_modes(obj, mode_orders, z)
             profiles = obj.mode_profiles(z);
 
-            if mode_orders == "all"
-                mode_orders = (1:size(profiles,1)-1)
+            if strcmp(mode_orders, 'all')
+                mode_orders = (1:size(profiles,1)-1);
             end
 
             fig = figure;
