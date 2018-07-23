@@ -1,31 +1,32 @@
 % class holding the parameters of the waveguide
 % The width method describes the parameterization of one edge
-%   of the waveguide; the other edge is assumed to be along the z-axis.
+%   of the waveguide; the waveguide is assumed to be symmetric across the z
+%   axis.
 classdef Waveguide
     properties
-        n
-        d_zero %this is the half-width at z=0
-        k
-        a %controls the rate at which the waveguide expands
-        betas
-        wg_length
-        steps = 500 %points per um in z direction
+        n           %index of the waveguide material (environment has n=1)
+        k           %free-space wavenumber
+        d_zero      %this is the half-width at z=0
+        a           %controls the rate at which the waveguide expands
+        betas       %holds the propagation constants of the modes
+        
     end
+    
     methods
-        function obj = Waveguide(n, d_zero, length, k, a) %half-width at z
+        % commonly used specs: (sqrt(12), 2*pi/1.55, 0.2, 0.0015)
+        function obj = Waveguide(n, k, d_zero, a)
             obj.n = n;
-            obj.d_zero = d_zero;
             obj.k = k;
+            obj.d_zero = d_zero;
             obj.a = a;
-            obj.wg_length = length;
-            obj.betas = obj.all_betas();
         end
         
         function d = width(obj, z)
-            d = obj.d_zero * exp(obj.a*z);
+            d = obj.d_zero + obj.a * z;
         end
-        function p = dedz(obj, z)
-            p = obj.a * width(obj, z);
+        
+        function p = dedz(obj)
+            p = obj.a;
         end
         
         function beta = getbeta(obj, z)
@@ -50,75 +51,40 @@ classdef Waveguide
             end
             beta = sort([x_sym, x_asym], 'descend');
         end
-
-        
-        function all_b = all_betas(obj)
-            all_b = [];
-            for i = 1 : obj.wg_length*obj.steps
-                all_b = cat(2, all_b, transp(obj.getbeta((i-1)/obj.steps)));
-            end
-        end
   
-        
-        function profiles = mode_profiles(obj, z)
-            num_of_points = 1000;
-            d = obj.width(z); %half-width of waveguide at z
-            X = linspace(-5*d, 5*d, num_of_points);
-
-            local_betas = getbeta(obj, z);
-            profiles = [];
-
-            for i = 1:length(local_betas)
-                u = sqrt((obj.n*obj.k)^2-local_betas(i)^2);
-                w = sqrt(local_betas(i)^2-obj.k^2);
-                mode = zeros(1, num_of_points);
-
-                if mod(i,2) == 1 %symmetrical modes
-                    for j = 1:length(X)
-                        x = X(j);
-                        C = cos(u*d)*exp(w*d);
-                        if x < -d
-                            mode(j) = C*exp(w*x);
-                        elseif x > d
-                            mode(j) = C*exp(-w*x);
-                        else
-                            mode(j) = cos(u*x);
-                        end
-                    end
-
-                elseif mod(i,2) == 0 %asymmetrical modes
-                    for j = i:length(X)
-                        x = X(j);
-                        C = sin(u*d)*exp(w*d);
-                        if x < -d
-                            mode(j) = -C*exp(w*x);
-                        elseif x > d
-                            mode(j) = C*exp(-w*x);
-                        else
-                            mode(j) = sin(u*x);
-                        end
-
-                    end
-                end
-                profiles = cat(1, profiles, mode);
+        function fcn = eigenmode_function(obj, z, order)
+            local_betas = obj.getbeta(z);
+            d = obj.width(z);
+            u = sqrt((obj.n*obj.k)^2-local_betas(order)^2);
+            w = sqrt(local_betas(order)^2-obj.k^2);
+            
+            if (mod(order, 2) == 1) %symmetrical modes
+                fcn = @(x) symmetrical_eigenmode(x, d, u, w);
+            elseif (mod(order, 2) == 0) %asymmetrical modes
+                fcn = @(x) asymmetrical_eigenmode(x, d, u, w);
             end
-            profiles = real(cat(1, profiles, X));
         end
-
         
-        
-        function plot_modes(obj, mode_orders, z)
-            profiles = obj.mode_profiles(z);
-
+        function plot_eigenmodes(obj, mode_orders, z, num_of_points)
+            if (nargin < 4)
+                num_of_points = 1000;
+            end
+            
+            d = obj.width(z);
+            X = linspace(-5*d, 5*d, num_of_points);
+            
+            local_betas = obj.getbeta(z);
+                        
             if strcmp(mode_orders, 'all')
-                mode_orders = (1:size(profiles,1)-1);
+                mode_orders = 1 : length(local_betas);
             end
 
             fig = figure;
             hold on
             grid on
-            for i = mode_orders(1):mode_orders(end)
-                plot(profiles(end,:), profiles(i,:))
+            for i = mode_orders
+                mode_function = obj.eigenmode_function(z, i);
+                plot(X, arrayfun(mode_function, X));
             end
 
             plot([-obj.width(z) -obj.width(z)], [-1 1], 'k')
@@ -127,6 +93,47 @@ classdef Waveguide
             hold off
             figure(fig)
         end
-        
     end
+end
+
+
+%Begin eigenfunctions for solving propagation constants
+function err=sym_modes(U, V)
+%dispersion equations
+W=sqrt(V^2-U^2);
+
+%Mode equations
+err=abs(U*tan(U)-W);
+end
+
+function err=asym_modes(U, V)
+%dispersion equations
+W=sqrt(V^2-U^2);
+
+%Mode equations
+err=abs(-U*cot(U)-W);
+end
+
+function y = symmetrical_eigenmode(x, d, u, w)
+normalization = 1/sqrt( (cos(d*u)^2)/w + d + sin(2*d*u)/(2*u));
+    C = cos(u*d)*exp(w*d);
+    if x < -d
+        y = normalization * C*exp(w*x);
+    elseif x > d
+        y = normalization * C*exp(-w*x);
+    else
+        y = normalization * cos(u*x);
+    end
+end
+
+function y = asymmetrical_eigenmode(x, d, u, w)
+normalization = 1/sqrt( (sin(d*u)^2)/w + d - sin(2*d*u)/(2*u));
+ C = sin(u*d)*exp(w*d);
+ if x < -d
+     y = -normalization * C*exp(w*x);
+ elseif x > d
+     y = normalization * C*exp(-w*x);
+ else
+     y = normalization * sin(u*x);
+ end
 end
