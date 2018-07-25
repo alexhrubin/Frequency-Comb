@@ -15,7 +15,7 @@ function a = A(WG, betas, i)
             integral = trapz(zq, beta_diff);
             phase = exp(1j * integral);
             
-            numerator = WG.dedz() * WG.k * overlap_integral(WG, betas, i, m, n);
+            numerator = WG.dedz() * WG.k * overlap_numeric(WG, betas, i, m, n);
             denominator = betas(m, i) - betas(n, i);
             
             a(n,m) = phase * numerator / denominator;
