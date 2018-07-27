@@ -1,16 +1,26 @@
-function solve_c(WG, step, zmax, c0)
+function solve_c(WG, z_max, c0)
 
-zq = 0:step:zmax;
+zq = 0:z_max;
 betas = all_betas(WG, zq);
 
-zspan = [0 zmax];
+zspan = [0 z_max];
 
-[z, c] = ode45(@(z,c) dcdz(z,c,WG,betas,1,3), zspan, c0);
-
-plot(z, abs(c(:,1)));
-title c_1
+[z, c] = ode45(@(z,c) dcdz(z,c,WG,betas), zspan, c0);
 
 figure
-plot(z, abs(c(:,3)));
-title c_3
+xlabel('z along waveguide (microns)')
+ylabel('absolute value of mode coefficient')
+hold on
+
+legendCell = {};
+
+for order = 1 : size(c, 2)
+    plot(z, abs(c(:, order)))
+    legendCell{order} = num2str(order);
+end
+
+title('abs(c_i)')
+legend(legendCell)
+
+
 end

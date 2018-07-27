@@ -54,14 +54,19 @@ classdef Waveguide
   
         function fcn = eigenmode_function(obj, z, order)
             local_betas = obj.getbeta(z);
+            if (order > length(local_betas))
+                fcn = @(x) 0*x;
+                return
+            end
+            
             d = obj.width(z);
             u = sqrt((obj.n*obj.k)^2-local_betas(order)^2);
             w = sqrt(local_betas(order)^2-obj.k^2);
             
             if (mod(order, 2) == 1) %symmetrical modes
-                fcn = @(x) symmetrical_eigenmode(x, d, u, w);
+                fcn = @(x) symmetrical_eigenmode(x, d, obj.k, local_betas(order), u, w);
             elseif (mod(order, 2) == 0) %asymmetrical modes
-                fcn = @(x) asymmetrical_eigenmode(x, d, u, w);
+                fcn = @(x) asymmetrical_eigenmode(x, d, obj.k, local_betas(order), u, w);
             end
         end
         
@@ -114,8 +119,8 @@ W=sqrt(V^2-U^2);
 err=abs(-U*cot(U)-W);
 end
 
-function y = symmetrical_eigenmode(x, d, u, w)
-normalization = 1/sqrt( (cos(d*u)^2)/w + d + sin(2*d*u)/(2*u));
+function y = symmetrical_eigenmode(x, d, k, beta, u, w)
+normalization = (k/2*beta) / sqrt((cos(d*u)^2)/w + d + sin(2*d*u)/(2*u));
     C = cos(u*d)*exp(w*d);
     if x < -d
         y = normalization * C*exp(w*x);
@@ -126,8 +131,8 @@ normalization = 1/sqrt( (cos(d*u)^2)/w + d + sin(2*d*u)/(2*u));
     end
 end
 
-function y = asymmetrical_eigenmode(x, d, u, w)
-normalization = 1/sqrt( (sin(d*u)^2)/w + d - sin(2*d*u)/(2*u));
+function y = asymmetrical_eigenmode(x, d, k, beta, u, w)
+normalization = (k/2*beta) / sqrt( (sin(d*u)^2)/w + d - sin(2*d*u)/(2*u));
  C = sin(u*d)*exp(w*d);
  if x < -d
      y = -normalization * C*exp(w*x);
