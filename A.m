@@ -1,4 +1,5 @@
 function a = A(WG, betas, z)
+fprintf('z = %f\n', z)
 
 dim = size(betas, 1) - 1;
 a = zeros(dim);
@@ -9,3 +10,5 @@ for m = 1 : dim
         a(m,n) = -real(a(n,m)) + imag(a(n,m)) * 1j;
     end
 end
+end
+

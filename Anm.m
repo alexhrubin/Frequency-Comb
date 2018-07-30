@@ -1,5 +1,5 @@
 function anm = Anm(WG, betas, z, n, m)
-disp(z)
+
 if (n == m)
     anm = 0;
     return
@@ -12,22 +12,20 @@ if (max(n,m) > length(local_betas))
     return
 end
 
-numerator = WG.dedz() * WG.k * overlap(WG, z, n, m);
+numerator = WG.k * overlap(WG, z, n, m);
 denominator = local_betas(m) - local_betas(n); 
 
-if (z < 0.1)
-    z_fine = linspace(0, z, 10);
-else
-    z_fine = 0:0.1:z;
-end
-
-if (z ~= 0)
-    zq = betas(end, :);
-    beta_diff = interp1(zq, betas(m, :), z_fine) - interp1(zq, betas(n, :), z_fine);
-    integral = trapz(z_fine, beta_diff);
-    phase = exp(1j * integral);
-else
+if (z == 0)
     phase = 1;
+else   
+    relevant_betas = betas(:, betas(end,:) <= z);
+    zero_padding = zeros(1, size(relevant_betas, 1) - length(local_betas) - 1);
+    last_col = cat(2, local_betas, zero_padding, z);
+    relevant_betas = cat(2, relevant_betas, transp(last_col));
+    beta_diff = relevant_betas(m, :) - relevant_betas(n, :);
+    integral = trapz(relevant_betas(end, :), beta_diff);
+
+    phase = exp(1j * integral);
 end
 
 anm = phase * numerator / denominator;

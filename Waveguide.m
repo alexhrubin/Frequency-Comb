@@ -22,11 +22,15 @@ classdef Waveguide
         end
         
         function d = width(obj, z)
-            d = obj.d_zero + obj.a * z;
+            %d = obj.d_zero * exp(obj.a * z);  %exponentially expanding
+            d = obj.d_zero + obj.a * z;  %linearly expanding
+            %d = obj.d_zero + obj.d_zero*exp(obj.a*z) +  0.1*sin(2*pi*z/5);
         end
         
-        function p = dedz(obj)
-            p = obj.a;
+        function p = dedz(obj, z)
+           % p = obj.a * obj.d_zero * exp(obj.a * z);
+           p = obj.a;
+           % p = obj.a*obj.d_zero*exp(obj.a*z) + 0.1*2*pi*cos(2*pi*z/5) / 5;
         end
         
         function beta = getbeta(obj, z)
@@ -68,6 +72,12 @@ classdef Waveguide
             elseif (mod(order, 2) == 0) %asymmetrical modes
                 fcn = @(x) asymmetrical_eigenmode(x, d, obj.k, local_betas(order), u, w);
             end
+        end
+        
+        function fcn = eigenmode_h(obj, z, order)
+            local_betas = obj.getbeta(z);
+            electric_field = obj.eigenmode_function(z, order);
+            fcn = @(x) (1/obj.k) * local_betas(order) * electric_field(x);
         end
         
         function plot_eigenmodes(obj, mode_orders, z, num_of_points)
@@ -120,7 +130,7 @@ err=abs(-U*cot(U)-W);
 end
 
 function y = symmetrical_eigenmode(x, d, k, beta, u, w)
-normalization = (k/2*beta) / sqrt((cos(d*u)^2)/w + d + sin(2*d*u)/(2*u));
+normalization = sqrt(k/(2*beta)) / sqrt((cos(d*u)^2)/w + d + sin(2*d*u)/(2*u));
     C = cos(u*d)*exp(w*d);
     if x < -d
         y = normalization * C*exp(w*x);
@@ -132,7 +142,7 @@ normalization = (k/2*beta) / sqrt((cos(d*u)^2)/w + d + sin(2*d*u)/(2*u));
 end
 
 function y = asymmetrical_eigenmode(x, d, k, beta, u, w)
-normalization = (k/2*beta) / sqrt( (sin(d*u)^2)/w + d - sin(2*d*u)/(2*u));
+normalization = sqrt(k/(2*beta)) / sqrt( (sin(d*u)^2)/w + d - sin(2*d*u)/(2*u));
  C = sin(u*d)*exp(w*d);
  if x < -d
      y = -normalization * C*exp(w*x);

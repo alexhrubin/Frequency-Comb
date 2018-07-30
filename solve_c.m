@@ -1,11 +1,13 @@
-function solve_c(WG, z_max, c0)
+function [z,c] = solve_c(WG, z_max, c0)
 
-zq = 0:z_max;
+zq = 0:0.25:z_max;
 betas = all_betas(WG, zq);
 
 zspan = [0 z_max];
 
+tic
 [z, c] = ode45(@(z,c) dcdz(z,c,WG,betas), zspan, c0);
+fprintf('time to solve = %f\n', toc)
 
 figure
 xlabel('z along waveguide (microns)')
@@ -19,8 +21,11 @@ for order = 1 : size(c, 2)
     legendCell{order} = num2str(order);
 end
 
-title('abs(c_i)')
-legend(legendCell)
+plot(z, arrayfun(@(z) WG.width(z), z));
+legendCell{end+1} = 'waveguide half-width';
 
+title('abs(c_i)')
+legend(legendCell, 'Location', 'northwest')
+grid on
 
 end

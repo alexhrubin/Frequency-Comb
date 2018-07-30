@@ -1,7 +1,7 @@
 function integral = coeff_integral(WG, wg_length, order, Ex_phi, Hy_phi, X)
 
 betas = WG.getbeta(wg_length);
-order_beta = betas(3);
+order_beta = betas(order);
 
 Ex_beta_func = WG.eigenmode_function(wg_length, order);
 Hy_beta_func = @(x) (1 / WG.k) * order_beta * Ex_beta_func(x);
