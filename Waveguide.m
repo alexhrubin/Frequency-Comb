@@ -13,7 +13,7 @@ classdef Waveguide
     end
     
     methods
-        % commonly used specs: (sqrt(12), 2*pi/1.55, 0.2, 0.0015)
+        % commonly used specs: (sqrt(12), 2*pi/1.55, 0.25, 0.04)
         function obj = Waveguide(n, k, d_zero, a)
             obj.n = n;
             obj.k = k;
@@ -21,7 +21,7 @@ classdef Waveguide
             obj.a = a;
         end
         
-        function d = width(obj, z)
+        function d = width(obj, z) 
             %d = obj.d_zero * exp(obj.a * z);  %exponentially expanding
             d = obj.d_zero + obj.a * z;  %linearly expanding
             %d = obj.d_zero + obj.d_zero*exp(obj.a*z) +  0.1*sin(2*pi*z/5);
