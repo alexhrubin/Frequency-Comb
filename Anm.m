@@ -1,19 +1,24 @@
-function anm = Anm(WG, betas, z, n, m)
+function anm = Anm(WG, betas, z, n, m, max_modes)
 
 if (n == m)
     anm = 0;
     return
 end
 
-local_betas = WG.getbeta(z);
+local_betas = WG.getbeta_position(z, max_modes);
 
 if (max(n,m) > length(local_betas))
     anm = 0;
     return
 end
 
+if (max(local_betas(m), local_betas(n)) == 0);
+    anm = 0;
+    return
+end
+
 numerator = WG.k * overlap(WG, z, n, m);
-denominator = local_betas(m) - local_betas(n); 
+denominator = local_betas(m) - local_betas(n);
 
 if (z == 0)
     phase = 1;

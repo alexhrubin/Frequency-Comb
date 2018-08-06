@@ -1,8 +1,13 @@
 %find the propagation constants at each query point in zq
-function betas = all_betas(WG, zq)
-beta_cells = arrayfun(@(z) WG.getbeta(z), zq, 'UniformOutput', false);
+function betas = all_betas(WG, zq, max_num_of_modes)
 
-max_num_of_modes = max(cellfun(@(item) length(item), beta_cells));
+if (nargin == 3)
+    beta_cells = arrayfun(@(z) WG.getbeta_position(z, max_num_of_modes), zq, 'UniformOutput', false);
+else
+    beta_cells = arrayfun(@(z) WG.getbeta_position(z), zq, 'UniformOutput', false);
+    max_num_of_modes = max(cellfun(@(item) length(item), beta_cells));
+    disp(max_num_of_modes)
+end
 
 %betas is a zero-padded matrix where each column corresponds to the set of
 %propagation constants which exist at the zq_interp points along the

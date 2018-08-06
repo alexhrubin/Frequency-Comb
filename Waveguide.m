@@ -4,67 +4,89 @@
 %   axis.
 classdef Waveguide
     properties
-        n           %index of the waveguide material (environment has n=1)
+        eps           %epsilon of the waveguide material (environment has n=1)
         k           %free-space wavenumber
-        d_zero      %this is the half-width at z=0
+        lower_zero      
+        upper_zero
         a           %controls the rate at which the waveguide expands
-        betas       %holds the propagation constants of the modes
-        
     end
     
     methods
         % commonly used specs: (sqrt(12), 2*pi/1.55, 0.25, 0.04)
-        function obj = Waveguide(n, k, d_zero, a)
-            obj.n = n;
+        function obj = Waveguide(eps, k, zero_width, a)
+            obj.eps = eps;
             obj.k = k;
-            obj.d_zero = d_zero;
+            obj.lower_zero = zero_width(1);
+            obj.upper_zero = zero_width(2);
             obj.a = a;
         end
         
-        function d = width(obj, z) 
-            %d = obj.d_zero * exp(obj.a * z);  %exponentially expanding
-            d = obj.d_zero + obj.a * z;  %linearly expanding
-            %d = obj.d_zero + obj.d_zero*exp(obj.a*z) +  0.1*sin(2*pi*z/5);
+        function top = upper_edge(obj, z)
+            top = obj.upper_zero * exp(obj.a * z);
+                
         end
         
-        function p = dedz(obj, z)
-           % p = obj.a * obj.d_zero * exp(obj.a * z);
-           p = obj.a;
-           % p = obj.a*obj.d_zero*exp(obj.a*z) + 0.1*2*pi*cos(2*pi*z/5) / 5;
+        function bottom = lower_edge(obj, z)
+            bottom = obj.lower_zero * exp(0.01 * z);
+            
+        end
+        function d = half_width(obj, z)
+            d = (obj.upper_edge(z) - obj.lower_edge(z)) / 2;
         end
         
-        function beta = getbeta(obj, z)
-            d = obj.width(z);
-            V = d * obj.k * sqrt(obj.n^2-1);
-            n_sym= floor(V/pi);
-            x_sym=[];
-            for i_sym = 0:n_sym
-                tmp_U = fminbnd(@(U) sym_modes(U, V), i_sym*pi, i_sym*pi+pi/2);
-                tmp_beta = sqrt((obj.n*obj.k)^2-(tmp_U/d)^2);
-                x_sym = [x_sym, tmp_beta];
+        function p = dedz_upper(obj, z)
+            p = obj.a * obj.upper_zero * exp(obj.a * z);
+        end
+        function p = dedz_lower(obj, z)
+           p = 0.01 * obj.lower_zero * exp(0.01 * z);
+        end
+        
+        
+        function betas = getbeta_position(obj, z, max_modes)
+            d = obj.half_width(z);
+            if (nargin == 3)
+                betas = obj.getbeta_width(d, max_modes);
+            else
+                betas = obj.getbeta_width(d);
+            end
+        end
+        
+        function betas = getbeta_width(obj, d, max_modes)
+            V = d * obj.k * sqrt(obj.eps-1);
+
+            if (nargin == 3)
+                n_modes = max_modes;
+            else
+                n_modes = ceil(2*V/pi);    
             end
 
-            n_asym= round(V/pi);
-            x_asym=[];
-            if n_asym>0
-                for i_asym = 1:n_asym
-                    tmp_U = fminbnd(@(U) asym_modes(U, V), pi/2+(i_asym-1)*pi, pi+(i_asym-1)*pi);
-                    tmp_beta = sqrt((obj.n*obj.k)^2-(tmp_U/d)^2);
-                    x_asym = [x_asym, tmp_beta];
+            betas = [];
+            
+            for i = 0 : n_modes-1
+                if (i >= ceil(2*V/pi)) %happens if we demand a mode that doesn't exist
+                    tmp_beta = 0;
+                elseif (mod(i, 2) == 0) %symm modes
+                    i_sym = i/2;
+                    tmp_U = fminbnd(@(U) sym_modes(U, V), i_sym*pi, i_sym*pi+pi/2);
+                    tmp_beta = sqrt(obj.eps*obj.k^2-(tmp_U/d)^2);
+                elseif (mod(i, 2) == 1) %asymm modes
+                    i_asym = ceil(i/2)-1;
+                    tmp_U = fminbnd(@(U) asym_modes(U, V), i_asym*pi + pi/2, i_asym*pi + pi);
+                    tmp_beta = sqrt(obj.eps*obj.k^2-(tmp_U/d)^2);
                 end
+                betas = [betas, tmp_beta];
             end
-            beta = sort([x_sym, x_asym], 'descend');
         end
   
         function fcn = eigenmode_function(obj, z, order)
-            local_betas = obj.getbeta(z);
+            local_betas = obj.getbeta_position(z);
             if (order > length(local_betas))
                 fcn = @(x) 0*x;
                 return
             end
             
-            d = obj.width(z);
-            u = sqrt((obj.n*obj.k)^2-local_betas(order)^2);
+            d = obj.half_width(z);
+            u = sqrt(obj.eps*obj.k^2-local_betas(order)^2);
             w = sqrt(local_betas(order)^2-obj.k^2);
             
             if (mod(order, 2) == 1) %symmetrical modes
@@ -85,10 +107,10 @@ classdef Waveguide
                 num_of_points = 1000;
             end
             
-            d = obj.width(z);
-            X = linspace(-5*d, 5*d, num_of_points);
+            d = obj.half_width(z);
+            X = linspace(-3*d, 3*d, num_of_points);
             
-            local_betas = obj.getbeta(z);
+            local_betas = obj.getbeta_position(z);
                         
             if strcmp(mode_orders, 'all')
                 mode_orders = 1 : length(local_betas);
@@ -102,12 +124,24 @@ classdef Waveguide
                 plot(X, arrayfun(mode_function, X));
             end
 
-            plot([-obj.width(z) -obj.width(z)], [-1 1], 'k')
-            plot([obj.width(z) obj.width(z)], [-1 1], 'k')
+            plot([-obj.half_width(z) -obj.half_width(z)], [-0.75 0.75], 'k')
+            plot([obj.half_width(z) obj.half_width(z)], [-0.75 0.75], 'k')
 
             hold off
             figure(fig)
         end
+        
+        function visualize_waveguide(obj, z_range)
+            z_array = z_range(1) : 0.05 : z_range(2);
+            
+            hold on
+            grid on
+            plot(z_array, arrayfun(@(z) obj.upper_edge(z), z_array))
+            plot(z_array, arrayfun(@(z) obj.lower_edge(z), z_array))
+            hold off        
+        end
+        
+        
     end
 end
 
