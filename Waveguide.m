@@ -6,40 +6,38 @@ classdef Waveguide
     properties
         eps           %epsilon of the waveguide material (environment has n=1)
         k           %free-space wavenumber
-        lower_zero      
-        upper_zero
-        a           %controls the rate at which the waveguide expands
+        upper_edge_func  %function handle describing upper edge of waveguide
+        lower_edge_func  %function handle describing lower edge of waveguide
+        upper_edge_dz    %function handle describing upper edge slope
+        lower_edge_dz    %function handle describing lower edge slope
     end
     
     methods
         % commonly used specs: (sqrt(12), 2*pi/1.55, 0.25, 0.04)
-        function obj = Waveguide(eps, k, zero_width, a)
+    function obj = Waveguide(eps, k, upper_edge_func, lower_edge_func)
             obj.eps = eps;
             obj.k = k;
-            obj.lower_zero = zero_width(1);
-            obj.upper_zero = zero_width(2);
-            obj.a = a;
-        end
-        
-        function top = upper_edge(obj, z)
-            top = obj.upper_zero * exp(obj.a * z);
-                
-        end
-        
-        function bottom = lower_edge(obj, z)
-            bottom = obj.lower_zero * exp(0.01 * z);
             
-        end
-        function d = half_width(obj, z)
-            d = (obj.upper_edge(z) - obj.lower_edge(z)) / 2;
-        end
-        
-        function p = dedz_upper(obj, z)
-            p = obj.a * obj.upper_zero * exp(obj.a * z);
-        end
-        function p = dedz_lower(obj, z)
-           p = 0.01 * obj.lower_zero * exp(0.01 * z);
-        end
+            obj.upper_edge_func = upper_edge_func;
+            obj.lower_edge_func = lower_edge_func;
+            
+            % for convenience, we do symbolic differentiation from the
+            % waveguide profile functions, then convert symbolic exprs
+            % back to function handles because they evaluate faster
+            syms f(x)
+            f(x) = obj.upper_edge_func(x);
+            fprime = diff(f, x);
+            obj.upper_edge_dz = matlabFunction(fprime);
+            
+            syms g(x)
+            g(x) = obj.lower_edge_func(x);
+            gprime = diff(g, x);
+            obj.lower_edge_dz = matlabFunction(gprime);
+    end
+           
+    function d = half_width(obj, z)
+           d = (obj.upper_edge_func(z) - obj.lower_edge_func(z)) / 2;
+    end
         
         
         function betas = getbeta_position(obj, z, max_modes)
@@ -136,8 +134,8 @@ classdef Waveguide
             
             hold on
             grid on
-            plot(z_array, arrayfun(@(z) obj.upper_edge(z), z_array))
-            plot(z_array, arrayfun(@(z) obj.lower_edge(z), z_array))
+            plot(z_array, arrayfun(@(z) obj.upper_edge_func(z), z_array))
+            plot(z_array, arrayfun(@(z) obj.lower_edge_func(z), z_array))
             hold off        
         end
         

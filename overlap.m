@@ -3,8 +3,14 @@ function overlap = overlap(WG, z, n, m)
 mode_m = WG.eigenmode_function(z, m);
 mode_n = WG.eigenmode_function(z, n);
 
-top = WG.upper_edge(z);
-bottom = WG.lower_edge(z);
+top = WG.upper_edge_func(z);
+bottom = WG.lower_edge_func(z);
 
-overlap = (WG.eps - 1) * (WG.dedz_upper(z) * mode_m(top)*mode_n(top) - WG.dedz_lower(z) * mode_m(bottom)*mode_n(bottom));
+upper_slope = WG.upper_edge_dz(z);
+lower_slope = WG.lower_edge_dz(z);
+
+mntop = mode_n(top);
+mmtop = mode_m(top);
+
+overlap = (WG.eps - 1) * (upper_slope * mode_m(top)*mode_n(top) - lower_slope * mode_m(bottom)*mode_n(bottom));
 end
