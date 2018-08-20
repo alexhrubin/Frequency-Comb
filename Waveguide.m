@@ -14,7 +14,7 @@ classdef Waveguide
     
     methods
         % commonly used specs: (sqrt(12), 2*pi/1.55, 0.25, 0.04)
-    function obj = Waveguide(eps, k, upper_edge_func, lower_edge_func)
+    function obj = Waveguide(eps, k, lower_edge_func, upper_edge_func)
             obj.eps = eps;
             obj.k = k;
             
