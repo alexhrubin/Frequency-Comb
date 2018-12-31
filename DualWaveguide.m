@@ -28,44 +28,62 @@ classdef DualWaveguide
             obj.k = k;
         end
         
-        function betas = getbeta_position(obj, z, max_modes)
-            naked_wg_betas = sort([obj.wg1.getbeta_position(z), obj.wg2.getbeta_position(z)]);
-            for i = 1 : length(naked_wg_betas)
-                if (mod(i,2) == 1)
-                    naked_wg_betas(i) = 0.9 * naked_wg_betas(i);
-                else
-                    naked_wg_betas(i) = 1.01 * naked_wg_betas(i);
-                end
-            end
-               
+        function d = edge_sep(obj, z)
+            d = obj.sep + obj.wg2.lower_edge_func(z) - obj.wg1.upper_edge_func(z);
+        end
+        
+        %Provides an initial guess as to the dual-wg betas
+        function betas = naked_wg_betas(obj, z)
+            betas = sort([obj.wg1.getbeta_position(z), obj.wg2.getbeta_position(z)]);
+            betas = [betas*0.98, betas*1.01];
+%             for i = 1 : length(betas)
+%                 if (mod(i,2) == 1)
+%                     betas(i) = 0.98 * betas(i);
+%                 else
+%                     betas(i) = 1.01 * betas(i);
+%                 end
+%             end  
+        end
+        
+        function betas = getbeta_position(obj, z, starting_guess)
             a1 = 2 * obj.wg1.half_width(z);
             a2 = 2 * obj.wg2.half_width(z);
             d = obj.edge_sep(z);
+           
+            eigenfunc = @(b) obj.boundary_conds(z, b, 'det');
+          %  eigenfunc = @(b) eigenproblem(b, obj.k, obj.eps, a1, a2, d);
             
-            eigenfunc = @(b) eigenproblem(b, obj.k, obj.eps, a1, a2, d);
-       %     plot(obj.k:0.001:14, arrayfun(eigenfunc, obj.k:0.001:14));
-        %    grid on
+          %  plot(obj.k:0.001:14.4, arrayfun(eigenfunc, obj.k:0.001:14.4));
+            plot(0:0.001:20, arrayfun(eigenfunc, 0:0.001:20));
+            grid on
             
             options = optimset('Display', 'off');
             
             betas = [];
-            for i = naked_wg_betas
-                betas = [betas, fsolve(@(b) eigenproblem(b, obj.k, obj.eps, a1, a2, d), i, options)];
+            for i = starting_guess
+                next_beta = fsolve(eigenfunc, i, options);
+                % next_beta = fsolve(@(b) eigenproblem(b, obj.k, obj.eps, a1, a2, d), i, options)
+                if (imag(next_beta) ~= 0)
+                    continue
+                end
+                if (next_beta - obj.k < 1e-10)
+                    next_beta = obj.k;
+                end
+                betas = [betas, next_beta];
+                
             end
         end
         
-        function f = eigenmode_function(obj, z, order)
+        function f = eigenmode_function(obj, z, beta)
             a1 = 2 * obj.wg1.half_width(z);
             a2 = 2 * obj.wg2.half_width(z);
             d = obj.edge_sep(z);
-            local_betas = obj.getbeta_position(z);
-            beta = local_betas(order);
-            consts = obj.boundary_conds(z, beta);
+            consts = obj.boundary_conds(z, beta, 'null');
             
             f = @(y) modefcn(y, consts, a1, a2, d, 2*pi/1.55, 12, beta);
         end
         
-        function v = boundary_conds(obj, z, beta)
+        function v = boundary_conds(obj, z, beta, mode)
             gam = sqrt(obj.eps*obj.k^2 - beta^2);
             eta = sqrt(beta^2 - obj.k^2);
             
@@ -82,28 +100,33 @@ classdef DualWaveguide
                   0, 0, 0, eta*exp(eta*d), -eta*exp(-eta*d), -gam, 0, 0;
                   0, 0, 0, 0, 0, sin(gam*a2), cos(gam*a2), -1;
                   0, 0, 0, 0, 0, gam*cos(gam*a2), -gam*sin(gam*a2), eta];
-            v = null(M);
+              
+            if strcmp(mode, 'det')
+                v = det(M);
+            elseif strcmp(mode, 'null')
+                v = null(M);
+            else
+                disp("ERROR")
+            end
         end
         
-        function d = edge_sep(obj, z)
-            d = obj.sep + obj.wg2.lower_edge_func(z) - obj.wg1.upper_edge_func(z);
-        end
+
         
-        function plot_eigenmodes(obj, z, mode_orders)
-            local_betas = obj.getbeta_position(z);
+        function plot_eigenmodes(obj, mode_orders, z)
+            nb = obj.naked_wg_betas(z);
+            local_betas = obj.getbeta_position(z, nb);
             
             if strcmp(mode_orders, 'all')
                 mode_orders = 1 : length(local_betas);
             end
             
-            Y = -0.5 : 0.0001 : 1.5;
+            Y = -0.5 : 0.0001 : 2;
             figure
             hold on
             grid on
             
             for i = mode_orders
-                beta = local_betas(i);
-                modefcn = obj.eigenmode_function(z, beta);
+                modefcn = obj.eigenmode_function(z, local_betas(i));
                 plot(Y, arrayfun(modefcn, Y))
             end
             

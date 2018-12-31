@@ -1,4 +1,5 @@
 function err = dual_wg_eigenproblem(beta, k, eps, a1, a2, sep)
+% here, sep is the distance between the inner edges of the waveguides
 
 gam = sqrt(eps*k^2 - beta^2);
 eta = sqrt(beta^2 - k^2);

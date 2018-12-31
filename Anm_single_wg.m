@@ -1,12 +1,11 @@
-function anm = Anm(DWG, betas, z, n, m, starting_guess)
-)
+function anm = Anm(WG, betas, z, n, m, max_modes)
 
 if (n == m)
     anm = 0;
     return
 end
 
-local_betas = DWG.getbeta_position(z, starting_guess);
+local_betas = WG.getbeta_position(z, max_modes);
 
 if (max(n,m) > length(local_betas))
     anm = 0;
@@ -18,7 +17,7 @@ if (max(local_betas(m), local_betas(n)) == 0)
     return
 end
 
-numerator = DWG.k * dual_wg_overlap(DWG, z, n, m);
+numerator = WG.k * dual_wg_overlap(WG, z, n, m);
 denominator = local_betas(m) - local_betas(n);
 
 if (z == 0)

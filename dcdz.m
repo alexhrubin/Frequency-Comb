@@ -1,5 +1,5 @@
-function d = dcdz(z, c, WG, betas, max_modes)
+function d = dcdz(z, c, DWG, betas, starting_guess)
 
-a = A(WG, betas, z, max_modes);
+a = A(DWG, betas, z, starting_guess);
 d = a * c;
 end

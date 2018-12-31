@@ -109,10 +109,11 @@ classdef Waveguide
             X = linspace(-3*d, 3*d, num_of_points);
             
             local_betas = obj.getbeta_position(z);
-                        
+            
             if strcmp(mode_orders, 'all')
                 mode_orders = 1 : length(local_betas);
             end
+            
 
             fig = figure;
             hold on
