@@ -1,14 +1,15 @@
-function [z,c] = solve_c(DWG, z_max, starting_guess, c0)
+function [z,c] = solve_c(DWG, z_max, c0)
 
-zq = 0:0.25:z_max;
-betas = all_betas(DWG, zq, starting_guess);
+zq = 0:0.5:z_max;
+betas = all_betas(DWG, zq);
+betas = cat(1, betas(1:length(c0), :), betas(end, :));
 
 zspan = [0 z_max];
 
 opts = odeset('AbsTol',1e-3);
 
 tic
-[z, c] = ode45(@(z,c) dcdz(z,c,DWG,betas,starting_guess), zspan, c0, opts);
+[z, c] = ode45(@(z,c) dcdz(z,c,DWG,betas), zspan, c0, opts);
 fprintf('time to solve = %f\n', toc)
 
 figure

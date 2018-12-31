@@ -1,5 +1,5 @@
 %find the propagation constants at each query point in zq
-function betas = all_betas(DWG, zq, starting_guess)
+function betas = all_betas(DWG, zq)
 
 initial_beta_guess = DWG.naked_wg_betas(zq(1));
 
@@ -21,7 +21,7 @@ betas = zeros(length(zq), max_betas);
 for i = 1:length(zq)
     betas(i, 1:length(beta_cells{i})) = beta_cells{i};
 end
-betas = transp(betas);
+betas = transpose(betas);
 betas = cat(1, betas, zq);
 
 

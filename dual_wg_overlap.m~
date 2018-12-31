@@ -1,8 +1,7 @@
-function overlap = dual_wg_overlap(DWG, z, n, m)
+function overlap = dual_wg_overlap(DWG, z, betas, n, m)
 
 local_betas = DWG.getbeta_position(z, DWG.naked_wg_betas(z));
-beta_m = local_betas(m);
-beta_n = local_betas(n);
+beta_m = 
 mode_m = DWG.eigenmode_function(z, beta_m);
 mode_n = DWG.eigenmode_function(z, beta_n);
 

@@ -54,8 +54,8 @@ classdef DualWaveguide
           %  eigenfunc = @(b) eigenproblem(b, obj.k, obj.eps, a1, a2, d);
             
           %  plot(obj.k:0.001:14.4, arrayfun(eigenfunc, obj.k:0.001:14.4));
-            plot(0:0.001:20, arrayfun(eigenfunc, 0:0.001:20));
-            grid on
+          %  plot(0:0.001:20, arrayfun(eigenfunc, 0:0.001:20));
+          %  grid on
             
             options = optimset('Display', 'off');
             
@@ -72,6 +72,7 @@ classdef DualWaveguide
                 betas = [betas, next_beta];
                 
             end
+            betas = uniquetol(betas, 1e-4);
         end
         
         function f = eigenmode_function(obj, z, beta)

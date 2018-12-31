@@ -6,9 +6,14 @@ if (n == m)
 end
 
 local_betas = DWG.getbeta_position(z, DWG.naked_wg_betas(z));
+disp(size(local_betas))
+%local_betas = DWG.getbeta_position(z, starting_guess);
+
+%local_betas = betas(:, betas(end,:) <= z);
+%local_betas = local_betas(1:end-1, end);
 
 if (max(n,m) > length(local_betas))
-    fprintf('ok')
+    fpr
     anm = 0;
     return
 end
@@ -27,7 +32,7 @@ else
     relevant_betas = betas(:, betas(end,:) <= z);
     zero_padding = zeros(1, size(relevant_betas, 1) - length(local_betas) - 1);
     last_col = cat(2, local_betas, zero_padding, z);
-    relevant_betas = cat(2, relevant_betas, transpose(last_col));
+    relevant_betas = cat(2, relevant_betas, transp(last_col));
     beta_diff = relevant_betas(m, :) - relevant_betas(n, :);
     integral = trapz(relevant_betas(end, :), beta_diff);
 
